@@ -1,0 +1,149 @@
+captainVersion: 4
+services:
+    $$cap_appname:
+        image: laudspeaker:$$cap_laudspeaker_version
+        depends_on:
+            - $$cap_appname-backend
+        environment:
+            MAGIC_EMAIL_DOMAIN: $$cap_appname_magicemail_domain
+            MAGIC_EMAIL_KEY: $$cap_appname_magicemail_key
+            MAILGUN_API_KEY: $$cap_appname_mailgun_api
+            MAILGUN_DOMAIN: $$cap_appname_mailgun_domain
+            MAILGUN_TEST_DOMAIN: $$cap_appname_mailgun_testdomain
+            SLACK_CLIENT_ID: $$cap_appname_slack_clientid
+            SLACK_CLIENT_SECRET: $$cap_appname_slack_clientsecret
+            SLACK_SIGNING_SECRET: $$cap_appname_slack_signing_secret
+        caproverExtra:
+            containerHttpPort: '3000'
+    $$cap_appname-backend:
+        image: laudspeaker:api-latest
+        depends_on:
+          - $$cap_appname-redis
+          - $$cap_appname-postgres
+          - $$cap_appname-mongo
+          - $$cap_appname-clickhouse
+        caproverExtra:
+            containerHttpPort: '3001'
+    $$cap_appname-clickhouse:
+        depends_on:
+            - $$cap_appname-mongo
+            - $$cap_appname-redis
+        image: clickhouse/clickhouse-server:$$cap_clickhouse_version
+        environment:
+            MONGODB_URI: 'mongodb://srv-captain--$$cap_appname-mongo:27017/laudspeaker'
+            REDIS_URI: 'redis://srv-captain--$$cap_appname-redis:6379'
+        caproverExtra:
+            containerHttpPort: '8123'
+    $$cap_appname-postgres:
+        image: postgres:$$cap_postgres_version
+        environment:
+            POSTGRES_PASSWORD: $$cap_POSTGRES_PASSWORD
+            POSTGRES_USER: $$cap_POSTGRES_USER
+            POSTGRES_DB: laudspeaker
+    $$cap_appname-mongo:
+        documentation: Taken from https://hub.docker.com/_/mongo
+        image: mongo:$$cap_mongo_version
+        environment:
+            MONGODB_DB: laudspeaker
+        volumes:
+            - $$cap_appname-mongo:/data/db
+        caproverExtra:
+            notExposeAsWebApp: 'true'
+    $$cap_appname-redis:
+        image: redis:$$cap_redis_version
+        volumes:
+            - $$cap_appname-redis:/data
+        caproverExtra:
+            notExposeAsWebApp: 'true'
+caproverOneClickApp:
+    variables:
+        - id: $$cap_laudspeaker_version
+          label: Laudspeaker Version
+          defaultValue: '1.0.0'
+          description: Check the tag version on https://hub.docker.com/r/laudspeaker/laudspeaker/tags
+        - id: $$cap_clickhouse_version
+          label: Clickhouse Version
+          defaultValue: '22.3.18'
+          description: Check the tag version on https://hub.docker.com/r/clickhouse/clickhouse-server/tags
+        - id: $$cap_mongo_version
+          label: Mongo (database) version
+          defaultValue: '6.0.4'
+          description: Check out their Docker page for the valid tags https://hub.docker.com/_/mongo?tab=tags
+          validRegex: /^([^\s^\/])+$/
+        - id: $$cap_redis_version
+          label: Redis Version
+          defaultValue: '7.0.8-alpine3.17'
+          description: Check the tag version on https://hub.docker.com/_/redis?tab=tags
+        - id: $$cap_postgres_version
+          label: PostgreSQL Version
+          defaultValue: '15.2'
+          description: Check the tag version on https://hub.docker.com/_/postgres/tags
+        - id: $$cap_POSTGRES_USER
+          label: PostgreSQL | User
+          description: Name of the database user.
+          defaultValue: laudspeaker
+          validRegex: /.{1,}/
+        - id: $$cap_POSTGRES_PASSWORD
+          label: PostgreSQL | Password
+          description: Password of the database user.
+          defaultValue: $$cap_gen_random_hex(16)
+          validRegex: /.{1,}/
+        - id: $$cap_appname_magicemail_domain
+          label: Magic Email Domain
+          description:
+          defaultValue: 
+          validRegex: 
+        - id: $$cap_appname_magicemail_key
+          label: Magic Email Key
+          description:
+          defaultValue:
+          validRegex: 
+        - id: $$cap_appname_mailgun_api
+          label: Mailgun API Key
+          description: Even though you do not need to use the Mailgun integration, right now these accounts are required to self-deploy. Setting up a Mailgun account is easy and free at https://www.mailgun.com.
+          defaultValue:
+          validRegex: 
+        - id: $$cap_appname_mailgun_domain
+          label: Mailgun Domain
+          description: Even though you do not need to use the Mailgun integration, right now these accounts are required to self-deploy. Setting up a Mailgun account is easy and free at https://www.mailgun.com.
+          defaultValue:
+          validRegex: 
+        - id: $$cap_appname_mailgun_testdomain
+          label: Mailgun Test Domain
+          description: Even though you do not need to use the Mailgun integration, right now these accounts are required to self-deploy. Setting up a Mailgun account is easy and free at https://www.mailgun.com.
+          defaultValue:
+          validRegex: 
+        - id: $$cap_appname_slack_clientid
+          label: Slack Client ID
+          description: Even though you do not need to use the Slack integration, right now these accounts are required to self-deploy. Setting up a slack app is easy and free at https://api.slack.com/start/building.
+          defaultValue:
+          validRegex: 
+        - id: $$cap_appname_slack_clientsecret
+          label: Slack Client Secret
+          description: Even though you do not need to use the Slack integration, right now these accounts are required to self-deploy. Setting up a slack app is easy and free at https://api.slack.com/start/building.
+          defaultValue:
+          validRegex: 
+        - id: $$cap_appname_slack_signing_secret
+          label: Slack Signing Secret
+          description: Even though you do not need to use the Slack integration, right now these accounts are required to self-deploy. Setting up a slack app is easy and free at https://api.slack.com/start/building.
+          defaultValue:
+          validRegex: 
+    instructions:
+        start: |-
+            Laudspeaker is an open source omni-channel customer messaging platform. We make it easy for you connect with your users through emails, sms, slack and many other channels.
+
+            For documentation, see: https://laudspeaker.com/docs/guides/overview/intro
+        end: |
+            Laudspeaker is deployed and available as $$cap_appname. 
+
+            Before starting using Laudspeaker, you'll need to
+
+            - Enable HTTPS
+
+            - Force HTTPS by redirecting all HTTP traffic to HTTPS
+
+            IMPORTANT: It will take up to 1 minutes for Keycloak to be ready. Before that, you might see 502 error page.
+    displayName: 'Laudspeaker'
+    isOfficial: true
+    description: Laudspeaker is an open source omni-channel customer messaging platform. We make it easy for you connect with your users through emails, sms, slack and many other channels.
+    documentation: Taken from https://github.com/laudspeaker/laudspeaker
